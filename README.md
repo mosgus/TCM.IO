@@ -25,8 +25,14 @@ ToccoaIO/
 ## Setup
 
 **Install dependencies:**
+
+Run `install_requirements.bat` (double-click or from terminal) before running any Python scripts:
 ```bash
-pip install streamlit anthropic google-genai
+install_requirements.bat
+```
+Or manually:
+```bash
+pip install -r requirements.txt
 ```
 
 **Add API keys** (one key per file, no trailing newline required):
