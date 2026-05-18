@@ -59,7 +59,7 @@ python APItest.py
 
 **Run the app:**
 ```bash
-streamlit run main/app.py
+streamlit run main/main.py
 ```
 
 ---
