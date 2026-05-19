@@ -13,7 +13,7 @@ import re
 print("sample addy: 1125 Peachtree Industrial Blvd, Suwanee, GA 30024\n"
       "sample tenant: McDonald's")
 
-# Clanker API Init.
+# Clanker API Init 🤖.
 # https://ai.google.dev/gemini-api/docs/models
 gemini_model = "gemini-2.5-flash" # gemini-2.5-flash is the best price-performance model
 # https://platform.claude.com/docs/en/about-claude/models/overview
