@@ -9,8 +9,8 @@ AI-powered internal toolset for commercial real estate credit analysis.
 ```
 ToccoaIO/
 ├── main/
-│   ├── app.py              # Streamlit entry point — navigation shell
-│   ├── LLM_service.py      # AI pipeline logic (Gemini + Claude)
+│   ├── main.py             # Streamlit entry point — navigation shell
+│   ├── LLM_service.py          # AI pipeline logic (Gemini + Claude)
 │   └── pages/
 │       ├── home.py                     # Welcome screen
 │       ├── 1_Business_Development.py   # Stub
