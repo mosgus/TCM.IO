@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.title("TCM.io")
+st.title("Home")
 st.caption("ver 1.1 — A proprietary real estate tool")
 
 st.divider()
