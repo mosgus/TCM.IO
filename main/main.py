@@ -6,6 +6,8 @@ st.set_page_config(
     layout="centered"
 )
 
+st.title("TCM.io")
+
 pg = st.navigation([
     st.Page("pages/home.py", title="Home ⌂"),
     st.Page("pages/1_Business_Development.py", title="Business Development ⚒"),
