@@ -40,6 +40,7 @@ def _to_date(value: str) -> datetime.date:
         return datetime.date.today()
 
 
+
 def _selectbox_index(options: list, value: str) -> int:
     """Return the index of value in options, or 0 if not found."""
     return options.index(value) if value in options else 0
@@ -72,7 +73,7 @@ deals = get_all_deals(filters) if filters else all_deals
 st.subheader("Deals")
 if deals:
     df = pd.DataFrame(deals).rename(columns=_COL_LABELS)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width='stretch', hide_index=True)
 else:
     st.info("No deals match the current filters.")
 
@@ -95,10 +96,18 @@ else:
 
     with st.form("edit_deal_form"):
 
+        # Deal name — full width at top
+        deal_name = st.text_input("Deal Name", value=s.get("deal_name", ""))
+
         # Row 1 — dates
         c1, c2 = st.columns(2)
-        date_received = c1.date_input("Date Received", value=_to_date(s.get("date_received", "")))
-        date_closed   = c2.date_input("Date Closed",   value=_to_date(s.get("date_closed",   "")))
+        date_received = c1.date_input(
+            "Date Received",
+            value=_to_date(s.get("date_received", "")),
+            format="YYYY-MM-DD",
+        ) # Aesthetic change
+        date_closed   = c2.text_input("Date Closed (YYYY-MM-DD)", value=s.get("date_closed", ""),
+                                      placeholder="Leave blank if not closed")
 
         # Row 2 — location
         c1, c2, c3 = st.columns([3, 1, 1])
@@ -136,13 +145,14 @@ else:
         status = c2.selectbox("Status", STATUSES, index=_selectbox_index(STATUSES, s.get("status", "")))
 
         # ✅ submit button
-        submitted = st.form_submit_button("Save ✔", use_container_width=True)
+        submitted = st.form_submit_button("Save ✔", width='stretch')
 
     if submitted:
         updated = update_deal(
             s["id"],
+            deal_name              = deal_name,
             date_received          = date_received.isoformat(),
-            date_closed            = date_closed.isoformat(),
+            date_closed            = date_closed.strip(),
             city                   = city,
             state                  = state,
             zip_code               = zip_code,
