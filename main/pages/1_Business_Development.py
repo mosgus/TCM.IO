@@ -52,6 +52,28 @@ init_deals_collection()
 
 st.title("Business Development")
 st.caption("Deal pipeline")
+st.markdown(
+    """
+    <style>
+    button[kind="primary"],
+    button[data-testid="baseButton-primary"],
+    div[data-testid="stFormSubmitButton"] button {
+        background-color: #16a34a !important;
+        border-color: #74b37a !important;
+        color: white !important;
+    }
+
+    button[kind="primary"]:hover,
+    button[data-testid="baseButton-primary"]:hover,
+    div[data-testid="stFormSubmitButton"] button:hover {
+        background-color: #15803d !important;
+        border-color: #15803d !important;
+        color: white !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # --- Sidebar: filters + refresh ---
 with st.sidebar:
@@ -144,8 +166,9 @@ else:
         stage  = c1.selectbox("Stage",  STAGES,   index=_selectbox_index(STAGES,   s.get("stage",  "")))
         status = c2.selectbox("Status", STATUSES, index=_selectbox_index(STATUSES, s.get("status", "")))
 
-        # ✅ submit button
-        submitted = st.form_submit_button("Save ✔", width='stretch')
+        # ✅ submit button — centred at ~50% width via column trick
+        _, mid, _ = st.columns([1, 0.75, 1])
+        submitted = mid.form_submit_button("Save ✔", type="primary", width='stretch')
 
     if submitted:
         updated = update_deal(
