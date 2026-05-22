@@ -5,7 +5,6 @@ st.caption("ver 0.1")
 
 st.divider()
 
-# Visit https://tcm-io-tester.streamlit.app/ to see prototype features.
 
 st.markdown("""
 ### Welcome
@@ -13,7 +12,7 @@ st.markdown("""
 TCM.io is an internal toolset for TCM's workflow.
 Use the navigation tabs on the left to access each module.
 
-
+This site is where new beta features are deployed/tested before being pushed to the main app.
 
 | Module | Status | Description |
 |---|---|---|
