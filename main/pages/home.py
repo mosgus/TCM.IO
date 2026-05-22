@@ -11,7 +11,7 @@ st.markdown("""
 TCM.io is an internal toolset for TCM's workflow.
 Use the navigation tabs on the left to access each module.
 
-Visit https://tcm-io-tester.streamlit.app/ to see prototype features.
+Visit https://tcm-io-new.streamlit.app/ to see prototype features.
 
 | Module | Status | Description |
 |---|---|---|
