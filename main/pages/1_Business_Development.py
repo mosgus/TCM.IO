@@ -105,84 +105,64 @@ if st.button("↺ Refresh"):
 
 # --- Edit Form ---
 st.divider()
-st.subheader("Edit Deal")
 
-if not all_deals:
-    st.warning("No deals available to edit.")
-else:
-    deal_lookup = {d["deal_name"]: d for d in all_deals}
+with st.expander("Edit Deal", expanded=False):
+    if not all_deals:
+        st.warning("No deals available to edit.")
+    else:
+        deal_lookup = {d["deal_name"]: d for d in all_deals}
 
-    # Outside the form so switching deals reruns the page and repopulates fields
-    selected_name = st.selectbox("Deal", options=list(deal_lookup.keys()))
-    s = deal_lookup[selected_name]  # shorthand for selected deal
+        selected_name = st.selectbox("Deal", options=list(deal_lookup.keys()))
+        s = deal_lookup[selected_name]
 
-    with st.form("edit_deal_form"):
+        with st.form("edit_deal_form"):
 
-        # Deal name — full width at top
-        deal_name = st.text_input("Deal Name", value=s.get("deal_name", ""), placeholder="ex: Peachtree Corners NPL, Bigfork Land")
+            deal_name = st.text_input("Deal Name", value=s.get("deal_name", ""), placeholder="ex: Peachtree Corners NPL")
 
-        # Row 1 — dates
-        c1, c2 = st.columns(2)
-        date_received = c1.date_input(
-            "Date Received",
-            value=_to_date(s.get("date_received", "")),
-            format="YYYY-MM-DD",
-        ) # Aesthetic change
-        date_closed   = c2.text_input("Date Closed (YYYY-MM-DD)", value=s.get("date_closed", ""),
-                                      placeholder="Leave blank if not closed")
+            c1, c2 = st.columns(2)
+            date_received = c1.date_input("Date Received", value=_to_date(s.get("date_received", "")), format="YYYY-MM-DD")
+            date_closed   = c2.text_input("Date Closed (YYYY-MM-DD)", value=s.get("date_closed", ""), placeholder="Leave blank if not closed")
 
-        # Row 2 — location
-        c1, c2, c3 = st.columns([3, 1, 1])
-        city     = c1.text_input("City",     value=s.get("city",     ""), placeholder="ex: Atlanta, Chattanooga")
-        state    = c2.selectbox("State",    US_STATES, index=_selectbox_index(US_STATES, s.get("state", "GA")))
-        zip_code = c3.text_input("Zip Code", value=s.get("zip_code", ""))
+            c1, c2, c3 = st.columns([3, 1, 1])
+            city     = c1.text_input("City",     value=s.get("city",     ""))
+            state    = c2.selectbox("State",     US_STATES, index=_selectbox_index(US_STATES, s.get("state", "GA")))
+            zip_code = c3.text_input("Zip Code", value=s.get("zip_code", ""))
 
-        # Row 3 — people
-        c1, c2, c3 = st.columns(3)
-        tcm_originator    = c1.text_input("TCM Originator",    value=s.get("tcm_originator",    ""))
-        broker            = c2.text_input("Broker",            value=s.get("broker",            ""))
-        brokerage_company = c3.text_input("Brokerage Company", value=s.get("brokerage_company", ""))
+            c1, c2, c3 = st.columns(3)
+            tcm_originator    = c1.text_input("TCM Originator",    value=s.get("tcm_originator",    ""))
+            broker            = c2.text_input("Broker",            value=s.get("broker",            ""))
+            brokerage_company = c3.text_input("Brokerage Company", value=s.get("brokerage_company", ""))
 
-        # Row 4 — dollars
-        c1, c2 = st.columns(2)
-        fund_investment_amount = c1.number_input(
-            "Fund Investment Amount ($)", min_value=0.0, step=10000.0,
-            value=float(s.get("fund_investment_amount", 0))
-        )
-        deal_size = c2.number_input(
-            "Deal Size ($)", min_value=0.0, step=10000.0,
-            value=float(s.get("deal_size", 0))
-        )
+            c1, c2 = st.columns(2)
+            fund_investment_amount = c1.number_input("Fund Investment Amount ($)", min_value=0.0, step=10000.0, value=float(s.get("fund_investment_amount", 0)))
+            deal_size              = c2.number_input("Deal Size ($)",              min_value=0.0, step=10000.0, value=float(s.get("deal_size", 0)))
 
-        # Row 5 — deal classification
-        c1, c2 = st.columns(2)
-        deal_type    = c1.text_input("Deal Type",    value=s.get("deal_type",    ""), placeholder="Debt, Equity, NPL, ...")
-        deal_subtype = c2.text_input("Deal Subtype", value=s.get("deal_subtype", ""), placeholder="Co-GP, Mezzanine, ...")
+            c1, c2 = st.columns(2)
+            deal_type    = c1.text_input("Deal Type",    value=s.get("deal_type",    ""), placeholder="e.g. Debt, Equity, NPL")
+            deal_subtype = c2.text_input("Deal Subtype", value=s.get("deal_subtype", ""), placeholder="e.g. Co-GP, First Lien, Mezz")
 
-        c1, c2 = st.columns([3, 1])
-        asset_class = c1.text_input("Asset Class", value=s.get("asset_class", ""), placeholder="Retail, Multifamily, Mobile Home Park, ...")
-        development = c2.selectbox("Development",  DEVELOPMENTS,  index=_selectbox_index(DEVELOPMENTS,  s.get("development",  "")))
+            c1, c2 = st.columns([3, 1])
+            asset_class = c1.text_input("Asset Class", value=s.get("asset_class", ""), placeholder="e.g. Retail, Multifamily, Industrial")
+            development = c2.selectbox("Development",  DEVELOPMENTS, index=_selectbox_index(DEVELOPMENTS, s.get("development", "")))
 
-        # Row 6 — pipeline status
-        c1, c2 = st.columns(2)
-        stage  = c1.selectbox("Stage",  STAGES,   index=_selectbox_index(STAGES,   s.get("stage",  "")))
-        status = c2.selectbox("Status", STATUSES, index=_selectbox_index(STATUSES, s.get("status", "")))
+            c1, c2 = st.columns(2)
+            stage  = c1.selectbox("Stage",  STAGES,   index=_selectbox_index(STAGES,   s.get("stage",  "")))
+            status = c2.selectbox("Status", STATUSES, index=_selectbox_index(STATUSES, s.get("status", "")))
 
-        # ✅ submit button — centred at ~50% width via column trick
-        _, mid, _ = st.columns([1, 0.75, 1])
-        submitted = mid.form_submit_button("Save ✔", type="primary", width='stretch')
+            _, mid, _ = st.columns([1, 0.75, 1])
+            submitted = mid.form_submit_button("Save ✔", type="primary", width="stretch")
 
-    if submitted:
-        updated = update_deal(
-            s["id"],
-            deal_name              = deal_name,
-            date_received          = date_received.isoformat(),
-            date_closed            = date_closed.strip(),
-            city                   = city,
-            state                  = state,
-            zip_code               = zip_code,
-            tcm_originator         = tcm_originator,
-            broker                 = broker,
+        if submitted:
+            updated = update_deal(
+                s["id"],
+                deal_name              = deal_name,
+                date_received          = date_received.isoformat(),
+                date_closed            = date_closed.strip(),
+                city                   = city,
+                state                  = state,
+                zip_code               = zip_code,
+                tcm_originator         = tcm_originator,
+                broker                 = broker,
                 brokerage_company      = brokerage_company,
                 fund_investment_amount = fund_investment_amount,
                 deal_size              = deal_size,
@@ -191,10 +171,9 @@ else:
                 asset_class            = asset_class,
                 development            = development,
                 stage                  = stage,
-            status                 = status,
-        )
-        if updated:
-            st.success(f"'{selected_name}' saved. ↺ Refresh to see changes.")
-        else:
-            st.error(f"No deal found with id {s['id']}.")
-# --- Edit Form ---
+                status                 = status,
+            )
+            if updated:
+                st.success(f"'{selected_name}' saved. ↺ Refresh to see changes.")
+            else:
+                st.error(f"No deal found with id {s['id']}.")

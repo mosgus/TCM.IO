@@ -45,7 +45,7 @@ def _make_token(passkey: str) -> str:
     """Return a hash of passkey + server nonce. Changes on every server restart."""
     return hashlib.sha256(f"{passkey}{_server_nonce()}".encode()).hexdigest()[:16]
 
-"""Render the passkey form as the full page — no dialog, no close button."""
+# Render the passkey form as the full page — no dialog, no close button.
 def _show_passkey_gate():
 
     st.markdown(
