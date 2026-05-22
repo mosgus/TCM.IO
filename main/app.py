@@ -4,7 +4,7 @@ import streamlit as st
 APP_ICON = Path(__file__).resolve().parent.parent / "app_assets" / "logo.PNG"
 
 st.set_page_config(
-    page_title="TCM.io",
+    page_title="TCM.io Beta Features",
     page_icon=str(APP_ICON),
     layout="centered"
 )
