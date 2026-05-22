@@ -45,18 +45,39 @@ def _make_token(passkey: str) -> str:
     """Return a hash of passkey + server nonce. Changes on every server restart."""
     return hashlib.sha256(f"{passkey}{_server_nonce()}".encode()).hexdigest()[:16]
 
-
+"""Render the passkey form as the full page — no dialog, no close button."""
 def _show_passkey_gate():
-    """Render the passkey form as the full page — no dialog, no close button."""
+
     st.markdown(
         """
         <style>
+        html, body, [data-testid="stAppViewContainer"] {
+            background: #0e1117 !important;
+            color: #fafafa !important;
+        }
+        [data-testid="stAppViewContainer"] {
+            background-image: radial-gradient(circle at top, rgba(79, 140, 255, 0.18), transparent 42%);
+        }
+        [data-testid="stAppViewBlockContainer"] {
+            padding-top: 4rem;
+        }
         [data-testid="stSidebar"]            { display: none !important; }
         [data-testid="collapsedControl"]     { display: none !important; }
         div[data-testid="InputInstructions"] { display: none !important; }
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear,
         input[type="password"]::-webkit-credentials-auto-fill-button { display: none !important; }
+        div[data-baseweb="input"] > div {
+            background: #1a1f2b !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+        div[data-baseweb="input"] input {
+            color: #fafafa !important;
+        }
+        button[kind="primary"] {
+            background: #4f8cff !important;
+            border-color: #4f8cff !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
