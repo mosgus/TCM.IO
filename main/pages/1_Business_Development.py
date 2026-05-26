@@ -78,15 +78,87 @@ st.markdown(
 with st.sidebar:
     st.subheader("Filters")
     all_deals = get_all_deals()
-    stage_options  = ["All"] + sorted({d.get("stage",  "") for d in all_deals})
-    status_options = ["All"] + sorted({d.get("status", "") for d in all_deals})
-    stage_filter  = st.selectbox("Stage",  stage_options)
+
+    # TCM Originator Filter
+    originator_options = sorted({d.get("tcm_originator", "") for d in all_deals if d.get("tcm_originator")})
+    originator_filter = st.multiselect("TCM Originator", originator_options)
+
+    # Brokerage Filter — Broker cascades from Brokerage Company
+    brok_col1, brok_col2 = st.columns(2)
+    brokerage_filter = brok_col1.multiselect("Brokerage Co.",
+        sorted({d.get("brokerage_company", "") for d in all_deals if d.get("brokerage_company")}))
+    broker_pool = [d for d in all_deals if not brokerage_filter or d.get("brokerage_company") in brokerage_filter]
+    broker_filter = brok_col2.multiselect("Broker",
+        sorted({d.get("broker", "") for d in broker_pool if d.get("broker")}))
+
+    # Location Filter — cascading: each field narrows the next
+    st.markdown('<p style="font-size:0.875rem; margin-bottom:0;">Location</p>', unsafe_allow_html=True)
+    st.caption("State")
+    state_filter = st.multiselect("State",
+        sorted({d.get("state", "") for d in all_deals if d.get("state")}),
+        label_visibility="collapsed")
+
+    # City options limited to states already selected (if any)
+    city_pool = [d for d in all_deals if not state_filter or d.get("state") in state_filter]
+    city_col, zip_col = st.columns(2)
+    with city_col:
+        st.caption("City")
+        city_filter = st.multiselect("City",
+            sorted({d.get("city", "") for d in city_pool if d.get("city")}),
+            label_visibility="collapsed")
+
+    # Zip options limited to states + cities already selected (if any)
+    zip_pool = [d for d in city_pool if not city_filter or d.get("city") in city_filter]
+    with zip_col:
+        st.caption("Zip Code")
+        zip_filter = st.multiselect("Zip Code",
+            sorted({d.get("zip_code", "") for d in zip_pool if d.get("zip_code")}),
+            label_visibility="collapsed")
+
+    # Stage Filter
+    stage_options = sorted({d.get("stage", "") for d in all_deals if d.get("stage")})
+    stage_filter = st.multiselect("Stage", stage_options)
+
+    # Status Filter
+    status_options = ["All"] + sorted({d.get("status", "") for d in all_deals if d.get("status")})
     status_filter = st.selectbox("Status", status_options)
+
+    # Date Received Filter
+    st.markdown('<p style="font-size:0.875rem; margin-bottom:0;">Date Received</p>', unsafe_allow_html=True)
+    dr_col1, dr_col2 = st.columns(2)
+    dr_col1.caption("From")
+    dr_col2.caption("To")
+    date_from = dr_col1.date_input("From", value=None, label_visibility="collapsed", min_value=datetime.date(2000, 1, 1))
+    date_to   = dr_col2.date_input("To",   value=None, label_visibility="collapsed", min_value=datetime.date(2000, 1, 1))
+
+    # Date Closed Filter
+    st.markdown('<p style="font-size:0.875rem; margin-bottom:0;">Date Closed</p>', unsafe_allow_html=True)
+    dc_col1, dc_col2 = st.columns(2)
+    dc_col1.caption("From")
+    dc_col2.caption("To")
+    closed_from = dc_col1.date_input("Closed From", value=None, label_visibility="collapsed", min_value=datetime.date(2000, 1, 1))
+    closed_to   = dc_col2.date_input("Closed To",   value=None, label_visibility="collapsed", min_value=datetime.date(2000, 1, 1))
     st.divider()
 
 filters = {}
-if stage_filter  != "All": filters["stage"]  = stage_filter
-if status_filter != "All": filters["status"] = status_filter
+if originator_filter:        filters["tcm_originator"]    = {"$in": originator_filter}
+if brokerage_filter:         filters["brokerage_company"] = {"$in": brokerage_filter}
+if broker_filter:            filters["broker"]            = {"$in": broker_filter}
+if city_filter:              filters["city"]     = {"$in": city_filter}
+if state_filter:             filters["state"]    = {"$in": state_filter}
+if zip_filter:               filters["zip_code"] = {"$in": zip_filter}
+if stage_filter:             filters["stage"]          = {"$in": stage_filter}
+if status_filter != "All":   filters["status"]         = status_filter
+if date_from or date_to:
+    date_filter = {}
+    if date_from: date_filter["$gte"] = date_from.isoformat()
+    if date_to:   date_filter["$lte"] = date_to.isoformat()
+    filters["date_received"] = date_filter
+if closed_from or closed_to:
+    closed_filter = {}
+    if closed_from: closed_filter["$gte"] = closed_from.isoformat()
+    if closed_to:   closed_filter["$lte"] = closed_to.isoformat()
+    filters["date_closed"] = closed_filter
 
 deals = get_all_deals(filters) if filters else all_deals
 
@@ -98,20 +170,27 @@ if deals:
 else:
     st.info("No deals match the current filters.")
 
+if "expander_key" not in st.session_state:
+    st.session_state.expander_key = 0
+
 if st.button("↺ Refresh"):
+    st.session_state.expander_key += 1
     st.rerun()
-# --- Deals Table ---
 
 # --- Edit Form ---
 st.divider()
 
-with st.expander("Edit Deal ✎", expanded=False):
+with st.expander("Edit Deal ✎", expanded=False, key=f"edit_expander_{st.session_state.expander_key}"):
     if not deals:
         st.warning("No deals match the current filters." if filters else "No deals available to edit.")
     else:
         deal_lookup = {d["deal_name"]: d for d in deals}
 
-        selected_name = st.selectbox("Deal", options=list(deal_lookup.keys()))
+        deal_options = list(deal_lookup.keys())
+        # Reset stored selection if it no longer exists in the current options
+        if st.session_state.get("selected_deal") not in deal_options:
+            st.session_state["selected_deal"] = deal_options[0]
+        selected_name = st.selectbox("Deal", options=deal_options, key="selected_deal")
         s = deal_lookup[selected_name]
 
         with st.form("edit_deal_form"):
@@ -119,7 +198,7 @@ with st.expander("Edit Deal ✎", expanded=False):
             deal_name = st.text_input("Deal Name", value=s.get("deal_name", ""), placeholder="ex: Peachtree Corners NPL")
 
             c1, c2 = st.columns(2)
-            date_received = c1.date_input("Date Received", value=_to_date(s.get("date_received", "")), format="YYYY-MM-DD")
+            date_received = c1.date_input("Date Received", value=_to_date(s.get("date_received", "")), format="YYYY-MM-DD", min_value=datetime.date(2016, 1, 1))
             date_closed   = c2.text_input("Date Closed (YYYY-MM-DD)", value=s.get("date_closed", ""), placeholder="Leave blank if not closed")
 
             c1, c2, c3 = st.columns([3, 1, 1])
