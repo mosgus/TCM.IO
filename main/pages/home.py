@@ -1,8 +1,5 @@
 import streamlit as st
 
-#st.title("Home")
-st.caption("ver 0.1")
-
 st.divider()
 
 

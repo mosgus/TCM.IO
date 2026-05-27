@@ -1,4 +1,5 @@
 from pathlib import Path
+import base64
 import hashlib
 import secrets
 import time
@@ -8,10 +9,10 @@ APP_ICON      = Path(__file__).resolve().parent.parent / "app_assets" / "logo.PN
 TCM_LOGO_TEXT = Path(__file__).resolve().parent.parent / "app_assets" / "logowText.PNG"
 
 st.set_page_config(
-    page_title="TCM.io",
     page_icon=str(APP_ICON),
     layout="centered"
 )
+st.caption("ver 0.1")
 
 # Define navigation first — suppresses auto-discovery, pg.run() only called after auth
 pg = st.navigation([
@@ -140,5 +141,15 @@ if st.query_params.get("t") != _expected:
 
 # --- Run page (only reached after successful auth) ---
 
-st.title("TCM.io")
+# adds logo to page title
+
+_logo_b64 = base64.b64encode(APP_ICON.read_bytes()).decode()
+st.markdown(
+    f'<div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem;">'
+    f'<img src="data:image/png;base64,{_logo_b64}" style="height:42px; width:auto;">'
+    f'<h1 style="margin:0; padding:0;">TCM.io</h1>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
+
 pg.run()
