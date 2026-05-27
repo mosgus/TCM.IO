@@ -4,7 +4,7 @@ import pandas as pd
 
 # ❗ ignore unresolved references — Streamlit adds main/ to sys.path
 from db.mongo import (
-    init_deals_collection, get_all_deals, update_deal,
+    init_deals_collection, get_all_deals, update_deal, delete_deal,
     STAGES, STATUSES, DEVELOPMENTS, US_STATES,
 )
 
@@ -55,19 +55,27 @@ st.caption("Edit, Delete, Add-to, & Filter the Deal pipeline")
 st.markdown(
     """
     <style>
-    button[kind="primary"],
-    button[data-testid="baseButton-primary"],
+    /* Save — green: all form submit buttons (Save is the only one) */
     div[data-testid="stFormSubmitButton"] button {
         background-color: #16a34a !important;
         border-color: #74b37a !important;
         color: white !important;
     }
-
-    button[kind="primary"]:hover,
-    button[data-testid="baseButton-primary"]:hover,
     div[data-testid="stFormSubmitButton"] button:hover {
         background-color: #15803d !important;
         border-color: #15803d !important;
+        color: white !important;
+    }
+
+    /* Delete & Yes delete — red: regular primary buttons (not form submit) */
+    button[data-testid="baseButton-primary"] {
+        background-color: #dc2626 !important;
+        border-color: #dc2626 !important;
+        color: white !important;
+    }
+    button[data-testid="baseButton-primary"]:hover {
+        background-color: #b91c1c !important;
+        border-color: #b91c1c !important;
         color: white !important;
     }
     </style>
@@ -228,7 +236,7 @@ st.divider()
 # --- Edit Form ---
 st.divider()
 
-with st.expander("Edit/Delete Deal ✎", expanded=False, key=f"edit_expander_{st.session_state.expander_key}"):
+with st.expander("Edit Deal ✎", expanded=False, key=f"edit_expander_{st.session_state.expander_key}"):
     if not deals:
         st.warning("No deals match the current filters." if filters else "No deals available to edit.")
     else:
@@ -238,7 +246,7 @@ with st.expander("Edit/Delete Deal ✎", expanded=False, key=f"edit_expander_{st
         # Reset stored selection if it no longer exists in the current options
         if st.session_state.get("selected_deal") not in deal_options:
             st.session_state["selected_deal"] = deal_options[0]
-        selected_name = st.selectbox("Deal", options=deal_options, key="selected_deal")
+        selected_name = st.selectbox("Select Deal", options=deal_options, key="selected_deal")
         s = deal_lookup[selected_name]
 
         with st.form("edit_deal_form"):
@@ -275,8 +283,8 @@ with st.expander("Edit/Delete Deal ✎", expanded=False, key=f"edit_expander_{st
             stage  = c1.selectbox("Stage",  STAGES,   index=_selectbox_index(STAGES,   s.get("stage",  "")))
             status = c2.selectbox("Status", STATUSES, index=_selectbox_index(STATUSES, s.get("status", "")))
 
-            _, mid, _ = st.columns([1, 0.75, 1])
-            submitted = mid.form_submit_button("Save ✔", type="primary", width="stretch")
+            _, save_butt, _ = st.columns([1, 0.8, 1])
+            submitted = save_butt.form_submit_button("Save ✔", type="primary", width="stretch")
 
         if submitted:
             updated = update_deal(
@@ -303,3 +311,30 @@ with st.expander("Edit/Delete Deal ✎", expanded=False, key=f"edit_expander_{st
                 st.success(f"'{selected_name}' saved. ↺ Refresh to see changes.")
             else:
                 st.error(f"No deal found with id {s['id']}.")
+
+        _, _, del_butt = st.columns([1, 1, 0.6])
+        if del_butt.button("🗑 Delete Deal", type="primary", width="stretch"):
+            st.session_state["pending_delete_id"]   = s["id"]
+            st.session_state["pending_delete_name"] = selected_name
+
+@st.dialog("Confirm Delete")
+def _confirm_delete_dialog():
+    name = st.session_state.get("pending_delete_name", "this deal")
+    st.warning(f"Are you sure you want to permanently delete **'{name}'**? This cannot be undone.")
+    yes_col, no_col = st.columns(2)
+    if yes_col.button("Yes, delete", type="primary", width="stretch"):
+        deleted = delete_deal(st.session_state["pending_delete_id"])
+        st.session_state.pop("pending_delete_id",   None)
+        st.session_state.pop("pending_delete_name", None)
+        if deleted:
+            st.session_state["selected_deal"] = None
+            st.rerun()
+        else:
+            st.error("Delete failed.")
+    if no_col.button("No, keep it", width="stretch"):
+        st.session_state.pop("pending_delete_id",   None)
+        st.session_state.pop("pending_delete_name", None)
+        st.rerun()
+
+if st.session_state.get("pending_delete_id"):
+    _confirm_delete_dialog()
