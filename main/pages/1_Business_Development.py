@@ -168,11 +168,6 @@ with st.expander("Filters", expanded=False, key=f"filters_expander_{fv}"):
             closed_from = dc_col1.date_input("Closed From", value=None, label_visibility="collapsed", min_value=datetime.date(2015, 1, 1), key=f"filt_closed_from_{fv}")
             closed_to   = dc_col2.date_input("Closed To",   value=None, label_visibility="collapsed", min_value=datetime.date(2015, 1, 1), key=f"filt_closed_to_{fv}")
 
-    #with row3_c2:
-    #    if st.button("↩ Reset Filters", key="reset_filters_inner"):
-    #        st.session_state.filt_v += 1
-    #        st.rerun()
-
 btn_c1, btn_c2 = st.columns(2)
 if btn_c1.button("↩ Reset Filters", width="stretch", key="reset_filters_outer"):
     st.session_state.filt_v += 1
@@ -291,30 +286,36 @@ with st.expander("Edit Deal ✎", expanded=False, key=f"edit_expander_{st.sessio
             submitted = save_butt.form_submit_button("Save ✔", type="primary", width="stretch")
 
         if submitted:
-            updated = update_deal(
-                s["id"],
-                deal_name              = deal_name,
-                date_received          = date_received.isoformat(),
-                date_closed            = date_closed.strip(),
-                city                   = city,
-                state                  = state,
-                zip_code               = zip_code,
-                tcm_originator         = tcm_originator,
-                broker                 = broker,
-                brokerage_company      = brokerage_company,
-                fund_investment_amount = int(fund_investment_amount),
-                deal_size              = int(deal_size),
-                deal_type              = deal_type,
-                deal_subtype           = deal_subtype,
-                asset_class            = asset_class,
-                development            = development,
-                stage                  = stage,
-                status                 = status,
-            )
-            if updated:
-                st.success(f"'{selected_name}' saved. ↺ Refresh to see changes.")
+            other_names = {d["deal_name"].strip().lower() for d in all_deals if d["id"] != s["id"]}
+            if not deal_name.strip():
+                st.error("Deal Name cannot be empty.")
+            elif deal_name.strip().lower() in other_names:
+                st.error(f"A deal named '{deal_name.strip()}' already exists. Use a unique name.")
             else:
-                st.error(f"No deal found with id {s['id']}.")
+                updated = update_deal(
+                    s["id"],
+                    deal_name              = deal_name.strip(),
+                    date_received          = date_received.isoformat(),
+                    date_closed            = date_closed.strip(),
+                    city                   = city,
+                    state                  = state,
+                    zip_code               = zip_code,
+                    tcm_originator         = tcm_originator,
+                    broker                 = broker,
+                    brokerage_company      = brokerage_company,
+                    fund_investment_amount = int(fund_investment_amount),
+                    deal_size              = int(deal_size),
+                    deal_type              = deal_type,
+                    deal_subtype           = deal_subtype,
+                    asset_class            = asset_class,
+                    development            = development,
+                    stage                  = stage,
+                    status                 = status,
+                )
+                if updated:
+                    st.success(f"'{deal_name.strip()}' saved. ↺ Refresh to see changes.")
+                else:
+                    st.error(f"No deal found with id {s['id']}.")
 
 # --- Add Deal ➕---
 _BLANK = "Blank (new deal)"
@@ -365,30 +366,36 @@ with st.expander("(+) Add Deal", expanded=False, key=f"add_expander_{st.session_
         add_submitted = add_mid.form_submit_button("Add  +", type="primary", width="stretch")
 
     if add_submitted:
-        added = add_deal(
-            deal_name              = new_deal_name,
-            date_received          = new_date_received.isoformat(),
-            date_closed            = new_date_closed.strip(),
-            city                   = new_city,
-            state                  = new_state,
-            zip_code               = new_zip_code,
-            tcm_originator         = new_tcm_originator,
-            broker                 = new_broker,
-            brokerage_company      = new_brokerage_company,
-            fund_investment_amount = int(new_fund_investment_amount),
-            deal_size              = int(new_deal_size),
-            deal_type              = new_deal_type,
-            deal_subtype           = new_deal_subtype,
-            asset_class            = new_asset_class,
-            development            = new_development,
-            stage                  = new_stage,
-            status                 = new_status,
-        )
-        if added:
-            st.session_state.add_expander_key += 1
-            st.success(f"'{new_deal_name}' added. ↺ Refresh to see it in the table.")
+        existing_names = {d["deal_name"].strip().lower() for d in all_deals}
+        if not new_deal_name.strip():
+            st.error("Deal Name cannot be empty.")
+        elif new_deal_name.strip().lower() in existing_names:
+            st.error(f"A deal named '{new_deal_name.strip()}' already exists. Use a unique name.")
         else:
-            st.error("Failed to add deal.")
+            added = add_deal(
+                deal_name              = new_deal_name.strip(),
+                date_received          = new_date_received.isoformat(),
+                date_closed            = new_date_closed.strip(),
+                city                   = new_city,
+                state                  = new_state,
+                zip_code               = new_zip_code,
+                tcm_originator         = new_tcm_originator,
+                broker                 = new_broker,
+                brokerage_company      = new_brokerage_company,
+                fund_investment_amount = int(new_fund_investment_amount),
+                deal_size              = int(new_deal_size),
+                deal_type              = new_deal_type,
+                deal_subtype           = new_deal_subtype,
+                asset_class            = new_asset_class,
+                development            = new_development,
+                stage                  = new_stage,
+                status                 = new_status,
+            )
+            if added:
+                st.session_state.add_expander_key += 1
+                st.success(f"'{new_deal_name.strip()}' added. ↺ Refresh to see it in the table.")
+            else:
+                st.error("Failed to add deal.")
 
 # --- Delete Form ➖---
 if "delete_expander_key" not in st.session_state:
@@ -413,7 +420,7 @@ def _confirm_delete_dialog():
     name = st.session_state.get("pending_delete_name", "this deal")
     st.warning(f"Are you sure you want to permanently delete **'{name}'**? This cannot be undone.")
     yes_col, no_col = st.columns(2)
-    if yes_col.button("Yes, delete", type="primary", width="stretch"):
+    if yes_col.button("Yes, delete that shit", type="primary", width="stretch"):
         deleted = delete_deal(st.session_state["pending_delete_id"])
         st.session_state.pop("pending_delete_id",   None)
         st.session_state.pop("pending_delete_name", None)
@@ -423,7 +430,7 @@ def _confirm_delete_dialog():
             st.rerun()
         else:
             st.error("Delete failed.")
-    if no_col.button("No, keep it", width="stretch"):
+    if no_col.button("No, keep that shit", width="stretch"):
         st.session_state.pop("pending_delete_id",   None)
         st.session_state.pop("pending_delete_name", None)
         st.rerun()
