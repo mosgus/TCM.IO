@@ -25,8 +25,8 @@ STATES = [
     "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
     "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
     "VA","WA","WV","WI","WY", # All US States
-
-    "USA", "CAN", "MEX", "NA", "SA", "EU", "CN", # potential regions/nation-states
+    "DC",  # District of Columbia
+    "USA", "CAN", "MEX", "SA", "EU", "CN", "N/A"  # potential regions/nation-states
 ]
 
 
@@ -123,6 +123,20 @@ def add_deal(**kwargs) -> bool:
     except Exception as e:
         st.error(f"Failed to add deal: {e}")
         return False
+
+
+def delete_deals_by_range(min_id: int, max_id: int) -> int:
+    """Delete all deals whose id is between min_id and max_id (inclusive).
+
+    Returns the number of documents deleted.
+    """
+    try:
+        col = get_mongo_client()[_DB_NAME][_COL_NAME]
+        result = col.delete_many({"id": {"$gte": min_id, "$lte": max_id}})
+        return result.deleted_count
+    except Exception as e:
+        st.error(f"Failed to bulk delete deals: {e}")
+        return 0
 
 
 def delete_deal(deal_id: int) -> bool:

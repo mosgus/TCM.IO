@@ -5,8 +5,10 @@ import pandas as pd
 # ❗ ignore unresolved references — Streamlit adds main/ to sys.path
 from db.mongo import (
     init_deals_collection, get_all_deals, update_deal, delete_deal, add_deal,
+    delete_deals_by_range,
     STAGES, STATUSES, DEVELOPMENTS, STATES,
 )
+from db.csv_importer import validate_csv, insert_validated_rows, get_excel_sheet_names
 
 # Human-readable column labels for the dataframe display
 _COL_LABELS = {
@@ -325,18 +327,71 @@ _BLANK = "Blank (new deal)"
 # Bulk Add functionality
 @st.dialog("Bulk Add Deals")
 def _bulk_add_dialog():
-    """
-       TODO:
-                   1. Add upload button, prompting users to supply a .csv or excel file
-                   2. Implement csv upload functionality. Use the /temp/ActiveTable.csv for reference as a potential
-                      uploadable file's format. For simplicity's sake we should mandate a strict formatting for some
-                      aspects of the csv in order to Add deals cleanly and efficiently. This is how the app should
-                      handle the various entries from a csv file:
-                      - # & Deal Name: When pulling # and Deal Name entries from the csv the # and Deal Name should be
-                        the same in the Database as they appear in the csv
+    st.caption("Upload a CSV or Excel file. All rows are validated before anything is inserted — one bad row rejects the whole file.")
 
-    """
-    st.write("Bulk add functionality coming soon.")
+    uploaded = st.file_uploader("Choose file", type=["csv", "xlsx", "xls"], label_visibility="collapsed")
+
+    if not uploaded:
+        st.session_state.pop("_bulk_file_id", None)
+        st.session_state.pop("_bulk_vresult", None)
+        return
+
+    # Excel-specific layout options
+    is_excel = uploaded.name.lower().endswith((".xlsx", ".xls"))
+    excel_header_row = 1
+    excel_usecols    = ""
+    excel_sheet      = 0
+    if is_excel:
+        st.caption("Excel options — specify where your data is:")
+        sheet_names = get_excel_sheet_names(uploaded.getvalue())
+        if sheet_names:
+            excel_sheet = st.selectbox("Sheet", options=sheet_names, index=0)
+        ex_c1, ex_c2 = st.columns(2)
+        excel_header_row = ex_c1.number_input("Header row #", min_value=1, step=1, value=1,
+                                               help="Row number (1-based) containing the column headers.")
+        excel_usecols    = ex_c2.text_input("Column range (optional)", value="",
+                                             placeholder="e.g. B:S",
+                                             help="Leave blank to read all columns.")
+
+    # Validate once per unique file + Excel options combination
+    file_id = f"{uploaded.name}_{uploaded.size}_{excel_sheet}_{excel_header_row}_{excel_usecols}"
+    if st.session_state.get("_bulk_file_id") != file_id:
+        st.session_state["_bulk_file_id"] = file_id
+        with st.spinner("Validating…"):
+            vresult = validate_csv(uploaded.getvalue(), filename=uploaded.name,
+                                   excel_header_row=int(excel_header_row),
+                                   excel_usecols=excel_usecols,
+                                   excel_sheet=excel_sheet)
+        st.session_state["_bulk_vresult"] = vresult
+
+    vresult = st.session_state.get("_bulk_vresult", {})
+
+    if not vresult.get("success"):
+        st.error("❌ Validation failed — no deals will be added. Fix the errors below and re-upload.")
+        for err in vresult.get("errors", []):
+            st.markdown(f"- {err}")
+        return
+
+    # File is valid — show preview and await confirmation
+    will_add = len(vresult["to_insert"])
+    skipped  = vresult["skipped_names"]
+    st.success(f"✓ File is valid — **{will_add}** deal(s) ready to add to the database.")
+    if skipped:
+        st.warning(
+            f"⚠ {len(skipped)} deal(s) will be skipped (names already exist): "
+            + ", ".join(f"**{n}**" for n in skipped)
+        )
+
+    _, mid, _ = st.columns([1, 2, 1])
+    if mid.button("Confirm — Add to Database", type="primary", width="stretch"):
+        with st.spinner("Adding deals…"):
+            ins = insert_validated_rows(vresult["to_insert"])
+        st.session_state.pop("_bulk_file_id", None)
+        st.session_state.pop("_bulk_vresult", None)
+        if ins["success"]:
+            st.rerun()
+        else:
+            st.error(f"Insert failed: {ins['error']}")
 
 
 if "add_expander_key" not in st.session_state:
@@ -425,9 +480,64 @@ with st.expander("(+) Add Deal", expanded=False, key=f"add_expander_{st.session_
                 st.error("Failed to add deal.")
 
 # --- Delete Form ➖---
+@st.dialog("Bulk Delete — Select Range")
+def _bulk_delete_range_dialog():
+    st.write("Enter the **#** range of deals to delete. All deals whose # falls within this range will be removed.")
+    col1, col2 = st.columns(2)
+    min_id = col1.number_input("Min #", min_value=1, step=1, value=1)
+    max_id = col2.number_input("Max #", min_value=1, step=1, value=1)
+
+    if min_id > max_id:
+        st.warning("Min # must be ≤ Max #.")
+        return
+
+    preview = get_all_deals({"id": {"$gte": int(min_id), "$lte": int(max_id)}})
+    if preview:
+        st.info(f"**{len(preview)}** deal(s) in range #{int(min_id)} – #{int(max_id)}:")
+        for d in preview:
+            st.caption(f"#{d['id']} — {d['deal_name']}")
+    else:
+        st.info(f"No deals found in range #{int(min_id)} – #{int(max_id)}.")
+
+    _, mid, _ = st.columns([1, 2, 1])
+    if mid.button("Confirm Range", type="primary", width="stretch", disabled=not preview):
+        st.session_state["_bulk_del_range"] = {
+            "min_id": int(min_id),
+            "max_id": int(max_id),
+            "names":  [d["deal_name"] for d in preview],
+            "count":  len(preview),
+        }
+        st.rerun()
+
+
+@st.dialog("Confirm Bulk Delete")
+def _bulk_delete_confirm_dialog():
+    r = st.session_state["_bulk_del_range"]
+    st.warning(
+        f"Are you sure you want to permanently delete **{r['count']}** deal(s) "
+        f"(# {r['min_id']} – # {r['max_id']})? This cannot be undone."
+    )
+    for name in r["names"]:
+        st.caption(f"• {name}")
+    st.write("")
+    yes_col, no_col = st.columns(2)
+    if yes_col.button("Yes, delete all", type="primary", width="stretch"):
+        deleted = delete_deals_by_range(r["min_id"], r["max_id"])
+        st.session_state.pop("_bulk_del_range", None)
+        st.session_state.delete_expander_key = st.session_state.get("delete_expander_key", 0) + 1
+        st.rerun()
+    if no_col.button("No, cancel", width="stretch"):
+        st.session_state.pop("_bulk_del_range", None)
+        st.rerun()
+
+
 if "delete_expander_key" not in st.session_state:
     st.session_state.delete_expander_key = 0
 with st.expander("(–) Delete Deal", expanded=False, key=f"delete_expander_{st.session_state.delete_expander_key}"):
+    _, _bd_btn, _ = st.columns([2, 1, 2])
+    if _bd_btn.button("Bulk Delete ⊟", width="stretch"):
+        _bulk_delete_range_dialog()
+    st.markdown('<hr style="margin-top:0.3rem; margin-bottom:0.4rem; border:none; border-top:1px solid rgba(255,255,255,0.15);">', unsafe_allow_html=True)
     if not deals:
         st.warning("No deals match the current filters." if filters else "No deals available to delete.")
     else:
@@ -464,3 +574,6 @@ def _confirm_delete_dialog():
 
 if st.session_state.get("pending_delete_id"):
     _confirm_delete_dialog()
+
+if st.session_state.get("_bulk_del_range"):
+    _bulk_delete_confirm_dialog()

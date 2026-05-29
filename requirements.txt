@@ -2,3 +2,4 @@ anthropic
 google-genai
 streamlit
 pymongo
+openpyxl
