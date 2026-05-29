@@ -80,6 +80,53 @@ st.markdown(
         border-color: #b91c1c !important;
         color: white !important;
     }
+
+    /* ── Expander accent colours (marker div + :has()) ── */
+
+    /* Filters — yellow */
+    [data-testid="stExpander"]:has(.exp-filters) details > summary {
+        background-color:rgba(234,179,8,.18) !important;
+        border-left:3px solid rgba(234,179,8,.7) !important;
+        border-radius:4px !important;
+    }
+    [data-testid="stExpander"]:has(.exp-filters) details > summary p { color:#fbbf24 !important; }
+    [data-testid="stExpander"]:has(.exp-filters) details > summary svg { fill:#fbbf24 !important; }
+    [data-testid="stExpander"]:has(.exp-filters) details { border:1px solid rgba(234,179,8,.2) !important; border-radius:6px !important; }
+    /* reset nested expanders inside Filters to avoid inheriting yellow */
+    [data-testid="stExpander"]:has(.exp-filters) [data-testid="stExpander"] details > summary { background-color:transparent !important; border-left:none !important; }
+    [data-testid="stExpander"]:has(.exp-filters) [data-testid="stExpander"] details > summary p { color:inherit !important; }
+    [data-testid="stExpander"]:has(.exp-filters) [data-testid="stExpander"] details > summary svg { fill:inherit !important; }
+    [data-testid="stExpander"]:has(.exp-filters) [data-testid="stExpander"] details { border:none !important; }
+
+    /* Edit Deal — blue */
+    [data-testid="stExpander"]:has(.exp-edit) details > summary {
+        background-color:rgba(59,130,246,.18) !important;
+        border-left:3px solid rgba(59,130,246,.7) !important;
+        border-radius:4px !important;
+    }
+    [data-testid="stExpander"]:has(.exp-edit) details > summary p { color:#60a5fa !important; }
+    [data-testid="stExpander"]:has(.exp-edit) details > summary svg { fill:#60a5fa !important; }
+    [data-testid="stExpander"]:has(.exp-edit) details { border:1px solid rgba(59,130,246,.2) !important; border-radius:6px !important; }
+
+    /* Add Deal — green */
+    [data-testid="stExpander"]:has(.exp-add) details > summary {
+        background-color:rgba(22,163,74,.18) !important;
+        border-left:3px solid rgba(22,163,74,.7) !important;
+        border-radius:4px !important;
+    }
+    [data-testid="stExpander"]:has(.exp-add) details > summary p { color:#4ade80 !important; }
+    [data-testid="stExpander"]:has(.exp-add) details > summary svg { fill:#4ade80 !important; }
+    [data-testid="stExpander"]:has(.exp-add) details { border:1px solid rgba(22,163,74,.2) !important; border-radius:6px !important; }
+
+    /* Delete Deal — red */
+    [data-testid="stExpander"]:has(.exp-delete) details > summary {
+        background-color:rgba(220,38,38,.18) !important;
+        border-left:3px solid rgba(220,38,38,.7) !important;
+        border-radius:4px !important;
+    }
+    [data-testid="stExpander"]:has(.exp-delete) details > summary p { color:#f87171 !important; }
+    [data-testid="stExpander"]:has(.exp-delete) details > summary svg { fill:#f87171 !important; }
+    [data-testid="stExpander"]:has(.exp-delete) details { border:1px solid rgba(220,38,38,.2) !important; border-radius:6px !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -97,6 +144,7 @@ table_container = st.container()
 
 # --- Filters Form ---
 with st.expander("Filters", expanded=False, key=f"filters_expander_{fv}"):
+    st.markdown('<div class="exp-filters"></div>', unsafe_allow_html=True)
 
     # Row 1: Deal | Originator/Broker
     row1_c1, row1_c2 = st.columns(2)
@@ -216,7 +264,7 @@ if closed_from or closed_to:
 
 deals = get_all_deals(filters) if filters else all_deals
 
-# --- Fill table container (renders at top, above the Filters expander) ---
+# --- Fill table container (renders at top, above the Filters expander) 💻
 with table_container:
     st.subheader("Deal Pipeline table")
     if deals:
@@ -240,6 +288,7 @@ st.divider()
 
 # --- Edit Form ✏️---
 with st.expander("Edit Deal ✎", expanded=False, key=f"edit_expander_{st.session_state.expander_key}"):
+    st.markdown('<div class="exp-edit"></div>', unsafe_allow_html=True)
     if not deals:
         st.warning("No deals match the current filters." if filters else "No deals available to edit.")
     else:
@@ -397,6 +446,7 @@ def _bulk_add_dialog():
 if "add_expander_key" not in st.session_state:
     st.session_state.add_expander_key = 0
 with st.expander("(+) Add Deal", expanded=False, key=f"add_expander_{st.session_state.add_expander_key}"):
+    st.markdown('<div class="exp-add"></div>', unsafe_allow_html=True)
     # Bulk Add button
     _, _, _btn = st.columns([2, 2, 1])
     if _btn.button("⊞ Bulk Add", width="stretch"):
@@ -534,6 +584,7 @@ def _bulk_delete_confirm_dialog():
 if "delete_expander_key" not in st.session_state:
     st.session_state.delete_expander_key = 0
 with st.expander("(–) Delete Deal", expanded=False, key=f"delete_expander_{st.session_state.delete_expander_key}"):
+    st.markdown('<div class="exp-delete"></div>', unsafe_allow_html=True)
     _, _, _btn = st.columns([2, 2, 1])
     if _btn.button("⊟ Bulk Delete", width="stretch"):
         _bulk_delete_range_dialog()
